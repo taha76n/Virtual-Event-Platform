@@ -5,7 +5,9 @@ import cookieParser from "cookie-parser"
 import mongoose from 'mongoose';
 import connectDB from './core/database.js';
 import logger, { requestLogger } from './core/logger.js';
-import authRoutes from './modules/auth/routes.js';
+import authRoutes from './modules/auth/routes/authRoutes.js';
+import catalogRoutes from './modules/catalog/routes/catalogRoutes.js';
+import { errorHandler } from './core/errorHandlerMiddleware.js';
 
 const app = express();
 
@@ -24,11 +26,14 @@ connectDB();
 // MODULE ROUTING (Modular Monolith Boundaries)
 // ==========================================
 app.use('/api/auth', authRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 // Basic health check route
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Virtual Event Platform API is running' });
 });
+
+app.use(errorHandler());
 
 // Start Server
 const PORT = process.env.PORT || 5000;
