@@ -1,44 +1,60 @@
 import 'dotenv/config'; 
 import express from 'express';
+import dotenv from 'dotenv';
 import cors from 'cors';
-import cookieParser from "cookie-parser"
-import mongoose from 'mongoose';
+import cookieParser from 'cookie-parser';
+import { createServer } from 'http'; // 1. Import Node's built-in HTTP module
+
 import connectDB from './core/database.js';
 import logger, { requestLogger } from './core/logger.js';
-import authRoutes from './modules/auth/routes/authRoutes.js';
-import catalogRoutes from './modules/catalog/routes/catalogRoutes.js';
-import { errorHandler } from './core/errorHandlerMiddleware.js';
+import { checkSQSConnection } from './core/sqs.js';
+import { checkSafepayConfig } from './core/safepay.js';
+import { startTicketExpirationWorker } from './modules/ticketing/workers/ticketExpirationWorker.js';
+import { initSocket } from './core/socket.js'; // 2. Import our WebSocket initializer
 
+import cookieParser from 'cookie-parser';
 const app = express();
+
+// ==========================================
+// CREATE RAW HTTP SERVER
+// ==========================================
+// We pass our Express 'app' into Node's raw HTTP server. 
+// Now, 'server' handles the network connections, and 'app' just handles the routing.
+const httpServer = createServer(app);
+
+// ==========================================
+// INITIALIZE WEBSOCKETS
+// ==========================================
+// We pass the raw HTTP server to Socket.io so it can attach its WebSocket upgrade listener.
+// We store the returned 'io' instance in case we need to pass it to other workers later.
+const io = initSocket(httpServer);
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173', 
-  credentials: true
-}));
-app.use(cookieParser());
-app.use(express.json());
-app.use(requestLogger); // Attach our Winston request tracking middleware
-
-connectDB();
-
-// ==========================================
-// MODULE ROUTING (Modular Monolith Boundaries)
-// ==========================================
-app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/ticketing', ticketingRoutes);
 
 // Basic health check route
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Virtual Event Platform API is running' });
 });
 
-app.use(errorHandler());
+// ==========================================
+// GLOBAL ERROR HANDLER
+// MUST be the last middleware!
+// ==========================================
+app.use(errorHandler);
 
-// Start Server
+// ==========================================
+// START SERVER (UPDATED)
+// ==========================================
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+
+// CRITICAL CHANGE: We call .listen() on 'httpServer', NOT on 'app'!
+// If you call app.listen(), WebSockets will silently fail to connect.
+httpServer.listen(PORT, () => {
+  logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  logger.info(`WebSockets ready and listening for connections`);
 });
 
 // ==========================================
@@ -47,10 +63,15 @@ const server = app.listen(PORT, () => {
 const gracefulShutdown = () => {
   logger.info('Received shutdown signal (SIGINT/SIGTERM). Starting graceful shutdown...');
   
-  // 1. Stop accepting new HTTP requests
-  server.close(async (err) => {
+  if (ticketWorker) {
+    ticketWorker.stop();
+    logger.info('SQS Worker stopped polling.');
+  }
+
+  // 1. Stop accepting new HTTP requests (using httpServer now, not server)
+  httpServer.close(async (err) => {
     if (err) {
-      logger.error(`Error closing Express server: ${err.message}`);
+      logger.error(`Error during HTTP server shutdown: ${err.message}`);
       process.exit(1);
     }
     logger.info('Express HTTP server closed.');
