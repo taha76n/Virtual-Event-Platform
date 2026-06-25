@@ -1,6 +1,6 @@
 import express from 'express';
-import { checkout, safepayWebhook } from './controllers/ticketingController.js';
-import { requireAuth } from '../auth/index.js'; // From Auth Module interface
+import { requireAuth } from '../../auth/index.js';
+import { checkout, safepayWebhook } from '../controllers/ticketingController.js';
 
 const router = express.Router();
 

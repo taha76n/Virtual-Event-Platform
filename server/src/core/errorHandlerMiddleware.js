@@ -1,5 +1,5 @@
+import { AppError } from './error.js';
 import logger from './logger.js';
-import { AppError } from './errors.js';
 
 /**
  * Global Error Handling Middleware for Express.

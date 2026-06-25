@@ -11,8 +11,8 @@ const ticketTypeSchema = new mongoose.Schema({
   lockedCount: { type: Number, default: 0 },
   saleWindowStart: { type: Date },
   saleWindowEnd: { type: Date }
-}, { 
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
 export const TicketType = mongoose.model('TicketType', ticketTypeSchema);

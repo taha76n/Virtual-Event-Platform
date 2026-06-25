@@ -1,6 +1,6 @@
-import ChatMessage from '../models/ChatMessage.js';
-import { socketAsyncWrapper } from '../../../core/asyncHandler.js';
 import logger from '../../../core/logger.js';
+import { socketAsyncWrapper } from '../../../core/socketAsyncWrapper.js';
+import { ChatMessage } from '../models/chatMessage.js';
 
 // Export a function that sets up all the chat-related event listeners for a specific user's socket
 export const registerChatHandlers = (io, socket) => {

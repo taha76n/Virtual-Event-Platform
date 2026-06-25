@@ -1,5 +1,5 @@
-import { Event } from "./models/event";
-import { Session } from "./models/session";
+import { Event } from "./models/event.js";
+import { Session } from "./models/session.js";
 
 /**
  * PUBLIC INTERFACE FOR THE CATALOG MODULE

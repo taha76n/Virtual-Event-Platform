@@ -1,5 +1,5 @@
 import { Consumer } from 'sqs-consumer';
-import { sqsClient, QUEUE_URLS } from '../../../core/sqs.js';
+import { sqsClient, QUEUE_URLS } from '../../../core/awsSqs.js';
 import * as ticketingService from '../services/ticketingService.js';
 import logger from '../../../core/logger.js';
 

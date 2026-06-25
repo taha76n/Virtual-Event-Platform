@@ -1,9 +1,9 @@
 import express from 'express';
-import { createEvent, getEventById, getPublishedEvents } from './controllers/eventController.js';
-import { createSession, getEventSessions } from './controllers/sessionController.js';
-import { createTrack, getEventTracks } from './controllers/trackController.js';
-import { createSpeaker, assignSpeakerToSession, getSessionSpeakers } from './controllers/speakerController.js';
-import { requireAuth, requireRole } from '../auth/index.js'; // Importing from Auth module's public interface
+import { createEvent, getEventById, getPublishedEvents } from '../controllers/eventController.js';
+import { createSession, getEventSessions } from '../controllers/sessionController.js';
+import { createTrack, getEventTracks } from '../controllers/trackController.js';
+import { createSpeaker, assignSpeakerToSession, getSessionSpeakers } from '../controllers/speakerController.js';
+import { requireAuth, requireRole } from '../../auth/index.js';
 
 const router = express.Router();
 

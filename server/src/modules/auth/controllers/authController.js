@@ -17,7 +17,7 @@ const generateAccessToken = (user) => {
 
 const generateAndSaveRefreshToken = async (userId) => {
   const token = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
-  
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -42,7 +42,7 @@ export const googleLogin = async (req, res) => {
       idToken: tokenId,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
+
     const { email, name, picture, sub } = ticket.getPayload();
 
     let user = await User.findOne({ oauthProvider: 'google', oauthId: sub });
@@ -158,11 +158,11 @@ export const logout = async (req, res) => {
     if (token) {
       await RefreshToken.findOneAndDelete({ token });
     }
-    
+
     // Clear cookies on the client
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    
+
     res.status(200).json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     logger.error(`Logout Error: ${error.message}`);

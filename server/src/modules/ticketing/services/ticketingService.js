@@ -1,12 +1,12 @@
 import { SendMessageCommand } from '@aws-sdk/client-sqs';
-import TicketType from '../models/TicketType.js';
-import Order from '../models/Order.js';
-import Ticket from '../models/Ticket.js'; // Import the Ticket model we created earlier
 import crypto from 'crypto'; // Built-in Node.js module for generating secure random strings
-import { NotFoundError, ConflictError, BadRequestError } from '../../../core/errors.js';
 import logger from '../../../core/logger.js';
-import { sqsClient, QUEUE_URLS } from '../../../core/sqs.js';
+import { sqsClient, QUEUE_URLS } from '../../../core/awsSqs.js';
 import * as catalogModule from '../../catalog/index.js';
+import { BadRequestError, ConflictError, NotFoundError } from '../../../core/error.js';
+import { Order } from '../models/Order.js';
+import { Ticket } from '../models/ticket.js';
+import { TicketType } from '../models/ticketType.js';
 
 export const reserveTicket = async (userId, eventId, ticketTypeId) => {
   const isPublished = await catalogModule.isEventPublished(eventId);

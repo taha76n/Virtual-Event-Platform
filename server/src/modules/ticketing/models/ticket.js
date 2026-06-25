@@ -8,8 +8,8 @@ const ticketSchema = new mongoose.Schema({
   ticketTypeId: { type: mongoose.Schema.Types.ObjectId, ref: 'TicketType', required: true },
   qrCode: { type: String, required: true, unique: true },
   status: { type: String, enum: ['valid', 'scanned', 'cancelled'], default: 'valid' }
-}, { 
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
 export const Ticket = mongoose.model('Ticket', ticketSchema);

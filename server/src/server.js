@@ -1,102 +1,118 @@
-import 'dotenv/config'; 
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { createServer } from 'http'; // 1. Import Node's built-in HTTP module
+import { createServer } from 'http'; 
 
+// Core Imports
 import connectDB from './core/database.js';
 import logger, { requestLogger } from './core/logger.js';
-import { checkSQSConnection } from './core/sqs.js';
+import { checkSQSConnection } from './core/awsSqs.js';
 import { checkSafepayConfig } from './core/safepay.js';
-import { startTicketExpirationWorker } from './modules/ticketing/workers/ticketExpirationWorker.js';
-import { initSocket } from './core/socket.js'; // 2. Import our WebSocket initializer
+import { initSocket } from './core/socket.js';
+import { errorHandler } from './core/errorHandlerMiddleware.js';
 
-import cookieParser from 'cookie-parser';
+// Worker Imports
+import { startTicketExpirationWorker } from './modules/ticketing/workers/ticketExpiration.js';
+
+// Module Route Imports
+import authRoutes from './modules/auth/routes/authRoutes.js';
+import catalogRoutes from './modules/catalog/routes/catalogRoutes.js';
+import ticketingRoutes from './modules/ticketing/routes/ticketingRoutes.js';
+
+// Load environment variables from .env file
+dotenv.config();
+
+// ==========================================
+// SERVER INITIALIZATION
+// ==========================================
 const app = express();
+const httpServer = createServer(app); // Native HTTP server for WebSockets
+const io = initSocket(httpServer);    // Attach Socket.io to the HTTP server
 
 // ==========================================
-// CREATE RAW HTTP SERVER
+// MIDDLEWARE
 // ==========================================
-// We pass our Express 'app' into Node's raw HTTP server. 
-// Now, 'server' handles the network connections, and 'app' just handles the routing.
-const httpServer = createServer(app);
-
-// ==========================================
-// INITIALIZE WEBSOCKETS
-// ==========================================
-// We pass the raw HTTP server to Socket.io so it can attach its WebSocket upgrade listener.
-// We store the returned 'io' instance in case we need to pass it to other workers later.
-const io = initSocket(httpServer);
-
-// Middleware
 app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
+
+// Use express.json() but EXCLUDE the webhook route so we can verify the raw signature
+app.use('/api/ticketing/webhook/safepay', express.raw({ type: 'application/json' }));
+app.use(express.json()); 
+
+app.use(cookieParser());
+app.use(requestLogger); // Custom Winston request logger
+
+// ==========================================
+// REST API ROUTING
+// ==========================================
+app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/ticketing', ticketingRoutes);
 
-// Basic health check route
+// Basic health check route for AWS/Docker load balancers
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Virtual Event Platform API is running' });
 });
 
 // ==========================================
 // GLOBAL ERROR HANDLER
-// MUST be the last middleware!
 // ==========================================
-app.use(errorHandler);
+app.use(errorHandler); // MUST be the last middleware!
 
 // ==========================================
-// START SERVER (UPDATED)
+// BOOT SEQUENCE & SERVICES
 // ==========================================
 const PORT = process.env.PORT || 5000;
+let ticketWorker = null;
 
-// CRITICAL CHANGE: We call .listen() on 'httpServer', NOT on 'app'!
-// If you call app.listen(), WebSockets will silently fail to connect.
-httpServer.listen(PORT, () => {
-  logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  logger.info(`WebSockets ready and listening for connections`);
-});
+const startServer = async () => {
+  try {
+    // 1. Connect to Database
+    await connectDB();
+    
+    // 2. Validate External Service Configurations
+    checkSQSConnection();
+    checkSafepayConfig();
+
+    // 3. Start Background Workers
+    ticketWorker = startTicketExpirationWorker();
+
+    // 4. Start listening for HTTP and WebSocket traffic
+    httpServer.listen(PORT, () => {
+      logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+      logger.info(`WebSockets ready and listening for connections`);
+    });
+  } catch (error) {
+    logger.error(`Failed to start server: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 // ==========================================
 // GRACEFUL SHUTDOWN
 // ==========================================
 const gracefulShutdown = () => {
-  logger.info('Received shutdown signal (SIGINT/SIGTERM). Starting graceful shutdown...');
+  logger.info('Received shutdown signal. Starting graceful shutdown...');
   
   if (ticketWorker) {
     ticketWorker.stop();
     logger.info('SQS Worker stopped polling.');
   }
 
-  // 1. Stop accepting new HTTP requests (using httpServer now, not server)
   httpServer.close(async (err) => {
     if (err) {
       logger.error(`Error during HTTP server shutdown: ${err.message}`);
       process.exit(1);
     }
-    logger.info('Express HTTP server closed.');
-
-    try {
-      // 2. Close MongoDB connection cleanly
-      await mongoose.connection.close(false);
-      logger.info('MongoDB connection closed.');
-      
-      // 3. Exit process successfully
-      logger.info('Graceful shutdown completed successfully. Exiting process.');
-      process.exit(0);
-    } catch (dbErr) {
-      logger.error(`Error during MongoDB disconnection: ${dbErr.message}`);
-      process.exit(1);
-    }
+    logger.info('HTTP server closed.');
+    process.exit(0);
   });
-  
-  // Failsafe: Force shut down if closing takes longer than 10 seconds
-  setTimeout(() => {
-    logger.error('Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
 };
 
-// Listen for termination signals (Docker sends SIGTERM, Ctrl+C sends SIGINT)
-process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);

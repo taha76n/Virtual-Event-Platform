@@ -1,7 +1,7 @@
 import * as ticketingService from '../services/ticketingService.js';
-import { BadRequestError } from '../../../core/errors.js';
 import crypto from 'crypto'; // Needed for verifying the Safepay signature
 import logger from '../../../core/logger.js'; // Needed for logging webhook events
+import { BadRequestError } from '../../../core/error.js';
 
 /**
  * @desc    Initialize ticket checkout (Create soft reservation)
@@ -38,7 +38,7 @@ export const checkout = async (req, res, next) => {
 
   } catch (error) {
     // Passes our AppErrors directly to the Global Error Handler in the Canvas
-    next(error); 
+    next(error);
   }
 };
 
@@ -52,7 +52,7 @@ export const safepayWebhook = async (req, res, next) => {
     // 1. EXTRACT HEADERS AND BODY
     // Payment providers always send a special signature in the headers.
     // This proves the request actually came from Safepay and not a hacker.
-    const signature = req.headers['x-safepay-signature']; 
+    const signature = req.headers['x-safepay-signature'];
     const payload = req.body;
 
     // 2. BASIC VALIDATION
@@ -66,7 +66,7 @@ export const safepayWebhook = async (req, res, next) => {
     // We recreate the signature using our private Safepay Secret from our .env file
     // and compare it to the signature Safepay sent us. If they match, it's authentic!
     const secret = process.env.SAFEPAY_WEBHOOK_SECRET || 'test_secret';
-    
+
     // Create an HMAC SHA256 hash of the incoming JSON body
     const expectedSignature = crypto
       .createHmac('sha256', secret)
@@ -84,10 +84,10 @@ export const safepayWebhook = async (req, res, next) => {
     // 4. PROCESS THE EVENT
     // Safepay sends different "types" of events. We only care about successful payments right now.
     if (payload.eventType === 'payment.succeeded') {
-      
+
       // Extract the data we passed to Safepay when the user clicked checkout.
       // We assume we passed our database orderId into Safepay's metadata.
-      const orderId = payload.data.metadata.orderId; 
+      const orderId = payload.data.metadata.orderId;
       const safepaySessionId = payload.data.tracker; // Safepay's unique transaction ID
 
       logger.info(`Processing Safepay payment success for Order: ${orderId}`);
