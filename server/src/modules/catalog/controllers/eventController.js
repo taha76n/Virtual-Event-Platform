@@ -1,5 +1,6 @@
 import * as authModule from '../../auth/index.js';
 import logger from '../../../core/logger.js';
+import { Event } from '../models/event.js';
 
 /**
  * @desc    Create a new event
