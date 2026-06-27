@@ -1,5 +1,5 @@
+import "dotenv/config";
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http'; 
@@ -20,8 +20,6 @@ import authRoutes from './modules/auth/routes/authRoutes.js';
 import catalogRoutes from './modules/catalog/routes/catalogRoutes.js';
 import ticketingRoutes from './modules/ticketing/routes/ticketingRoutes.js';
 
-// Load environment variables from .env file
-dotenv.config();
 
 // ==========================================
 // SERVER INITIALIZATION

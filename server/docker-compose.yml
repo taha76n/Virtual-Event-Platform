@@ -1,25 +1,6 @@
-services:
-  app:
-    build: 
-      context: .
-      # We will create the Dockerfile later, for now we prep the compose
-    container_name: ${COMPOSE_PROJECT_NAME}-api
-    ports:
-      - "${HOST_PORT_BACKEND}:${PORT}"
-    environment:
-      - NODE_ENV=development
-      - PORT=${PORT}
-      - MONGO_URI=mongodb://mongo:27017/virtual_events
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-    depends_on:
-      - mongo
-    networks:
-      - ve_network
-    volumes:
-      - ./src:/usr/src/app/src
-      - /usr/src/app/node_modules
+version: '3.8'
 
+services:
   mongo:
     image: mongo:6.0
     container_name: ${COMPOSE_PROJECT_NAME}-db
@@ -29,6 +10,17 @@ services:
       - ve_network
     volumes:
       - mongo_data:/data/db
+
+  # Pinned to a stable community version to bypass the new Auth Token requirement
+  localstack:
+    image: localstack/localstack:3.4.0
+    container_name: ${COMPOSE_PROJECT_NAME}-aws
+    ports:
+      - "4566:4566"
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+    networks:
+      - ve_network
 
 networks:
   ve_network:
