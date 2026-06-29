@@ -2,6 +2,7 @@ import * as ticketingService from '../services/ticketingService.js';
 import crypto from 'crypto'; // Needed for verifying the Safepay signature
 import logger from '../../../core/logger.js'; // Needed for logging webhook events
 import { BadRequestError } from '../../../core/error.js';
+import mongoose from 'mongoose';
 
 /**
  * @desc    Initialize ticket checkout (Create soft reservation)
@@ -111,3 +112,4 @@ export const safepayWebhook = async (req, res, next) => {
     next(error);
   }
 };
+

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useEventDetails } from '../hooks/useEventDetails';
 import { Calendar, Users, Settings, ArrowLeft } from 'lucide-react';
+import SessionManager from '../Components/SessionManager';
 
 const ManageEvent = () => {
   // 1. Grab the dynamic ID from the URL (e.g., /events/:eventId/manage)
@@ -62,20 +63,7 @@ const ManageEvent = () => {
       {/* Dynamic Tab Content */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 min-h-[400px]">
         {activeTab === 'overview' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white">Event Details</h3>
-            <p className="text-zinc-400">{event.description}</p>
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
-                <p className="text-xs text-zinc-500 uppercase font-bold mb-1">Start Date</p>
-                <p className="text-zinc-200">{new Date(event.startsAt).toLocaleString()}</p>
-              </div>
-              <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
-                <p className="text-xs text-zinc-500 uppercase font-bold mb-1">Capacity</p>
-                <p className="text-zinc-200">{event.capacity === 0 ? 'Unlimited' : event.capacity}</p>
-              </div>
-            </div>
-          </div>
+          <SessionManager eventId={eventId}/>
         )}
 
         {activeTab === 'sessions' && (

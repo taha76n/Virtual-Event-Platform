@@ -90,6 +90,7 @@ export const getPublishedEvents = async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
+
     // Optional Search Filter by Event Title
     const keyword = req.query.keyword
       ? { title: { $regex: req.query.keyword, $options: 'i' } }
