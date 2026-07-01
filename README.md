@@ -304,74 +304,57 @@ NAT Traversal (STUN): Asynchronously, both clients query our STUN servers to loc
 
 P2P Streaming: Once a network path is matched, the browsers connect directly to stream HD video and audio, bypassing our application servers completely.
 
-3. Environment Variables Directory (.env.example)
+3. Environment Variables Guide
 
-The .env file controls your application's settings. Below is a detailed breakdown of your .env.example configurations and how they route traffic in local and containerized environments.
+The system configuration is driven by the environment variables loaded from the .env file at server startup. Below is a streamlined roadmap outlining the variables found in your .env.example.
 
-# =========================================================================
-# 1. DOCKER COMPOSE CONFIGURATION
-# =========================================================================
-# Prevents network and volume conflicts by prefixing your container names.
-COMPOSE_PROJECT_NAME=virtual-events
+Category
 
-# Defines the ports exposed on your host machine.
-HOST_PORT_BACKEND=5000
-HOST_PORT_MONGO=27018
+Key
 
-# =========================================================================
-# 2. RUNTIME AND PORT SCHEMES
-# =========================================================================
-# Set to 'development' locally for detailed logs and stack traces.
-NODE_ENV=development
-PORT=5000
+Description / Routing Resolution
 
-# =========================================================================
-# 3. DATABASE CONFIGURATION
-# =========================================================================
-# Crucial Hostname Resolution:
-# - Set to 'mongodb://mongo:27017/virtual-events' inside a Docker container.
-#   Docker resolves 'mongo' to the IP address of your 'mongo' service container.
-# - Set to 'mongodb://127.0.0.1:27018/virtual-events' when running the Node process
-#   directly on your host machine (outside Docker) because the port maps to 27018.
-MONGO_URI=mongodb://mongo:27017/virtual-events
+Orchestration
 
-# =========================================================================
-# 4. JWT SECURITY SECRETS
-# =========================================================================
-# Strong, cryptographically random keys used to sign access and refresh tokens.
-JWT_ACCESS_SECRET=your_jwt_access_secret_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+COMPOSE_PROJECT_NAME
 
-# =========================================================================
-# 5. GOOGLE OAUTH CREDENTIALS
-# =========================================================================
-# Acquired from your Google Cloud Console. Used to verify Google OAuth login tokens.
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+Project identifier used to prefix active Docker services and volumes.
 
-# =========================================================================
-# 6. AWS SQS CONFIGURATION (LOCALSTACK)
-# =========================================================================
-# Coordinates for connecting to LocalStack's SQS service:
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=test
-AWS_SECRET_ACCESS_KEY=test
+Host Ports
 
-# Container-to-Container Hostname Resolution:
-# - Set SQS_ENDPOINT to 'http://aws:4566' inside Docker. Inside the containerized network,
-#   the LocalStack container is named 'aws' (service container name).
-# - Set SQS_ENDPOINT to '[http://127.0.0.1:4566](http://127.0.0.1:4566)' if running Node outside Docker.
-SQS_ENDPOINT=http://aws:4566
-SQS_TICKET_EXPIRATION_QUEUE_URL=http://aws:4566/000000000000/TicketReleaseQueue
+PORT / HOST_PORT_*
 
-# =========================================================================
-# 7. SAFEPAY CONFIGURATION
-# =========================================================================
-# Configures your sandbox development credentials to process checkouts and webhook events.
-SAFEPAY_ENVIRONMENT=sandbox
-SAFEPAY_API_KEY=your_safepay_api_key
-SAFEPAY_WEBHOOK_SECRET=your_safepay_webhook_secret
+Port mappings matching the physical interface access keys (Backend: 5000, MongoDB: 27018).
 
+Databases
+
+MONGO_URI
+
+mongodb://mongo:27017/... (inside container) or mongodb://127.0.0.1:27018/... (running bare-metal).
+
+Encryption
+
+JWT_ACCESS_SECRET  JWT_REFRESH_SECRET
+
+Cryptographic salts used to sign rotating JSON Web Tokens securely.
+
+OAuth
+
+GOOGLE_* / GITHUB_*
+
+Production API keys registered within developer identity consoles.
+
+Queues (AWS)
+
+AWS_*  SQS_ENDPOINT  SQS_TICKET_EXPIRATION_QUEUE_URL
+
+Configures client routing keys. Endpoint resolves to LocalStack service boundary container http://aws:4566 in Docker or http://127.0.0.1:4566 locally.
+
+Gateway (Payments)
+
+SAFEPAY_*
+
+Webhook verification signing secrets and API keys running in sandbox mock modes.
 
 4. Setup & Installation Guide
 
@@ -395,7 +378,7 @@ Copy .env.example to a new file named .env:
 cp .env.example .env
 
 
-Open .env and fill in your custom configurations (such as your GOOGLE_CLIENT_ID and JWT secrets). If you are running Node on your host machine rather than inside Docker, update your hostnames to match your local ports:
+Open .env and fill in your custom configurations. If you are running Node on your host machine rather than inside Docker, update your hostnames to match your local ports:
 
 Change MONGO_URI to mongodb://127.0.0.1:27018/virtual-events
 
