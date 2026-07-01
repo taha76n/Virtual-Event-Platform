@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useEvents } from '../hooks/useEvents';
+import { useSocket } from '../context/SocketContext';
 
 
 const DashboardEvents = () => {
   // Consuming custom hook!
   const { events, isLoading, error } = useEvents();
+
+  const {isConnected} = useSocket();
 
   if (isLoading) {
     return <div className="p-8 text-zinc-400">Loading events catalog...</div>;
